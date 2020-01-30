@@ -9,6 +9,8 @@ import com.monitorgps.service.sendgauss.model.AlertaActivaEntity;
 import com.monitorgps.service.sendgauss.repository.AlertaActivaRepository;
 import com.monitorgps.service.sendgauss.service.GaussService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -20,31 +22,54 @@ import java.util.List;
 
 @Service
 public class GaussServiceImpl implements GaussService {
-
     SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     @Autowired
     AlertaActivaRepository alertaActivaRepository;
     @Override
     public ListResponseGauss sendEvents(Date horaant, Date horaact) {
+        Pageable pageable = PageRequest.of(0,300);
         final String uri_events = "http://testing.gausscontrol.com:8080/processor/events/tasktrigger/upload";
-        List<AlertaActivaEntity>alertaActivaEntities = alertaActivaRepository.findAllByFecenvgaussAndFecregBetween(null,horaant,horaact);
-        System.out.println(alertaActivaEntities);
+        List<AlertaActivaEntity>alertaActivaEntities = alertaActivaRepository
+                .findAllByFecenvgaussAndFecregBetween(null,horaant,horaact,pageable);
+        System.out.println(alertaActivaEntities.size());
         //List<Object[]> objects = alertaActivaRepository.getListEventsByMinute(horaant,horaact);
         //System.out.println(objects);
-        //List<RequestGauss> requestGausses = convertObjects(objects);
+        List<RequestGauss> requestGausses = convertActivaEntity(alertaActivaEntities);
         RestTemplate restTemplate = new RestTemplate();
         //ListRequestGauss listRequestGauss = new ListRequestGauss(requestGausses);
-        //ResponseEntity<String> str = restTemplate.postForEntity(uri_events,listRequestGauss, String.class);
+        ResponseEntity<String> str = restTemplate.postForEntity(uri_events,requestGausses, String.class);
 
         Gson gson = new Gson();
-       /* ListResponseGauss listResponseGauss = gson.fromJson(str.getBody(),ListResponseGauss.class);
+        //ListResponseGauss listResponseGauss = gson.fromJson(str.getBody(),ListResponseGauss.class);
         /*if(str.getStatusCodeValue()==200){
             System.out.println("EL ENVIO FUE CORRECTO "+horaact+"  "+horaant);
             System.out.println(listResponseGauss);
 
         }*/
         return null;
+    }
+
+    private List<RequestGauss> convertActivaEntity(List<AlertaActivaEntity> alertaActivaEntities) {
+        List<RequestGauss>requestGausses = new ArrayList<>();
+        RequestGauss gauss = null;
+        for (AlertaActivaEntity entity: alertaActivaEntities) {
+            gauss = new RequestGauss();
+            gauss.setStart(entity.getFecinicio().toString());
+            gauss.setEnd(entity.getFecact().toString());
+            gauss.setVehicleCode(entity.getVehiculo().getPlaca());
+            gauss.setDriverCode(entity.getRecorrido().getIdchofer().toString());
+            gauss.setAlertName(entity.getAlerta().getDescripcion());
+            gauss.setLatitude(Double.parseDouble(entity.getRecorrido().getLatitud()));
+            gauss.setLongitude(Double.parseDouble(entity.getRecorrido().getLongitud()));
+            gauss.setAltitude(entity.getRecorrido().getAltitud());
+            gauss.setMetricUnit(entity.getAlerta().getUnidad());
+            gauss.setValue(entity.getValor());
+            gauss.setExternalUID(entity.getId().toString());
+            gauss.setSerializadMetadata(ItemRequest.builder().speed(entity.getRecorrido().getVelocidad()).build());
+            requestGausses.add(gauss);
+        }
+        return requestGausses;
     }
 
     private List<RequestGauss> convertObjects(List<Object[]> objects) {

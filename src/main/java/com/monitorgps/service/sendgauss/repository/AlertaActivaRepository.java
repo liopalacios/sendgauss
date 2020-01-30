@@ -1,6 +1,7 @@
 package com.monitorgps.service.sendgauss.repository;
 
 import com.monitorgps.service.sendgauss.model.AlertaActivaEntity;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -20,5 +21,5 @@ public interface AlertaActivaRepository extends JpaRepository<AlertaActivaEntity
             "where a.fecreg >= :horaant and a.fecreg <= :horaact and a.fecenvgauss=null")
     List<Object[]> getListEventsByMinute(@Param("horaant") Date horaant, @Param("horaact") Date horaact);
 
-    List<AlertaActivaEntity> findAllByFecenvgaussAndFecregBetween(Object o, Date horaant, Date horaact);
+    List<AlertaActivaEntity> findAllByFecenvgaussAndFecregBetween(Object o, Date horaant, Date horaact, Pageable pageable);
 }

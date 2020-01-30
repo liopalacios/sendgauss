@@ -21,4 +21,7 @@ public class PrincipalController {
         return null;
     }
 
+  //  @RequestMapping(value = {"/getTransmision"},method = RequestMethod.GET)
+
+
 }
